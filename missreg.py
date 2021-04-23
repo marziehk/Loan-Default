@@ -31,3 +31,13 @@ class missingvaluereg():
             deter_data.loc[self.data[feature].isnull(), "Det" + feature] = model.predict(self.data[parameters])[self.data[feature].isnull()]
         return pd.concat([self.data,deter_data],axis=1)
         #return deter_data
+            def iterativemethod(self):
+        import numpy as np
+        from sklearn.experimental import enable_iterative_imputer
+        from sklearn.impute import IterativeImputer
+        imp_mean = IterativeImputer(random_state=0)
+        for featurem in self.missing_columns:
+            param= list(set(self.data.columns) - set(featurem))
+            imp_mean.fit(np.array(self.data[param]).reshape(-1,1))
+            self.data[featurem]=imp_mean.transform(np.array(self.data[featurem]).reshape(-1,1))
+        return self.data
