@@ -36,3 +36,13 @@ class missingvalue():
         return pd.concat([self.data, deter_data], axis=1)
 
         #return deter_data
+
+    def backward(self):
+        for feature in self.missCol:
+            self.data[feature] = self.data[feature].fillna(method='bfill').fillna(method='ffill')
+        return self.data
+
+    def forward(self):
+        for feature in self.missCol:
+            self.data[feature] = self.data[feature].fillna(method='ffill').fillna(method='bfill')
+        return self.data

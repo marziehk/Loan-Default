@@ -11,6 +11,8 @@ Missing_Features = ["feature1","feature3"]
 df_missing = missing.missingvalue(data=df, missCol=Missing_Features)
 # df_filled = df_missing.regression_random()
 # df_filled = df_missing.regression_random(parameters=["feature2"])
+# df_filled = df_missing.backward()
+df_filled = df_missing.forward()
 
 print("Orignial Dataset: \n", df)
 print("Cleaned Dataset: \n", df_filled)
