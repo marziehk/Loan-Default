@@ -39,12 +39,13 @@ class missingvalue():
 
         #return deter_data
 
-    def iterative(self):
+    def iterative(self, parameters=None):
         imp_mean = IterativeImputer(random_state=0)
-        for featurem in self.missCol:
-            param = list(set(self.data.columns) - set(featurem))
-            imp_mean.fit(np.array(self.data[param]).reshape(-1,1))
-            self.data[featurem] = imp_mean.transform(np.array(self.data[featurem]).reshape(-1,1))
+        for feature in self.missCol:
+            if not parameters:
+                parameters = list(set(self.data.columns) - set(feature))
+            imp_mean.fit(np.array(self.data[parameters]).reshape(-1,1))
+            self.data[feature] = imp_mean.transform(np.array(self.data[feature]).reshape(-1,1))
         return self.data
 
     def backward(self):
@@ -77,8 +78,8 @@ class missingvalue():
 
         return self.data
 
-    def deletion(self, *,axis=None):
-        if not axis or axis == 'row' or axis == 0:
+    def deletion(self, *, axis=None):
+        if not axis or axis == 'rows' or axis == 0:
             self.data.dropna(subset = self.missCol, inplace=True)
         if axis == 'columns' or axis == 1:
             self.data.drop(self.missCol, inplace=True, axis='columns')
