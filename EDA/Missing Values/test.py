@@ -13,7 +13,10 @@ df_missing = missing.missingvalue(data=df, missCol=Missing_Features)
 # df_filled = df_missing.regression_random(parameters=["feature2"])
 # df_filled = df_missing.backward()
 # df_filled = df_missing.forward()
-df_filled = df_missing.interpolate()
+# df_filled = df_missing.interpolate()
+# df_filled = df_missing.deletion(axis = 'columns')
+# df_filled = df_missing.replace('mode')  #mode does not make sense here!!
+df_filled = df_missing.iterative()
 
 print("Orignial Dataset: \n", df)
 print("Cleaned Dataset: \n", df_filled)

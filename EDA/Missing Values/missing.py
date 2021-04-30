@@ -1,6 +1,8 @@
 import pandas as pd
 import numpy as np
 from sklearn import linear_model
+from sklearn.experimental import enable_iterative_imputer
+from sklearn.impute import IterativeImputer
 
 class missingvalue():
 
@@ -37,6 +39,14 @@ class missingvalue():
 
         #return deter_data
 
+    def iterative(self):
+        imp_mean = IterativeImputer(random_state=0)
+        for featurem in self.missCol:
+            param = list(set(self.data.columns) - set(featurem))
+            imp_mean.fit(np.array(self.data[param]).reshape(-1,1))
+            self.data[featurem] = imp_mean.transform(np.array(self.data[featurem]).reshape(-1,1))
+        return self.data
+
     def backward(self):
         for feature in self.missCol:
             self.data[feature] = self.data[feature].fillna(method='bfill').fillna(method='ffill')
@@ -50,4 +60,26 @@ class missingvalue():
     def interpolate(self):
         for feature in self.missCol:
             self.data[feature].interpolate(method='values', inplace = True, limit_direction ="both")
+        return self.data
+
+    def replace(self, kind):
+        if kind == 'median':
+            median = self.data[self.missCol].median()
+            self.data.fillna(value = median, inplace= True)
+
+        if kind == 'mode':
+            mode = self.data[self.missCol].mode()
+            self.data.fillna(value = mode.iloc[0], inplace= True)  # mode can be multiple numbers, so we choose the first one
+
+        if kind == 'mean':
+            mean = self.data[self.missCol].mean()
+            self.data.fillna(value = mean, inplace= True)
+
+        return self.data
+
+    def deletion(self, *,axis=None):
+        if not axis or axis == 'row' or axis == 0:
+            self.data.dropna(subset = self.missCol, inplace=True)
+        if axis == 'columns' or axis == 1:
+            self.data.drop(self.missCol, inplace=True, axis='columns')
         return self.data
