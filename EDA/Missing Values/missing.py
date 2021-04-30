@@ -46,3 +46,8 @@ class missingvalue():
         for feature in self.missCol:
             self.data[feature] = self.data[feature].fillna(method='ffill').fillna(method='bfill')
         return self.data
+
+    def interpolate(self):
+        for feature in self.missCol:
+            self.data[feature].interpolate(method='values', inplace = True, limit_direction ="both")
+        return self.data
