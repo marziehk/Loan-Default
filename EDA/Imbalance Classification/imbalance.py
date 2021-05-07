@@ -1,112 +1,138 @@
 import pandas as pd
 import numpy as np
-from collections import Counter
-from imblearn.over_sampling import SMOTE
-from numpy import where
-from matplotlib import pyplot
-from imblearn.under_sampling import RandomUnderSampler
 from imblearn.pipeline import Pipeline
+from imblearn.over_sampling import SMOTE
 from imblearn.over_sampling import BorderlineSMOTE
 from imblearn.over_sampling import SVMSMOTE
 from imblearn.over_sampling import ADASYN
-import matplotlib.pyplot as plt
 from imblearn.over_sampling import RandomOverSampler
+from imblearn.under_sampling import NearMiss
+from imblearn.under_sampling import CondensedNearestNeighbour
+from imblearn.under_sampling import TomekLinks
+from imblearn.under_sampling import EditedNearestNeighbours
+from imblearn.under_sampling import OneSidedSelection
+from imblearn.under_sampling import NeighbourhoodCleaningRule
+from imblearn.under_sampling import RandomUnderSampler
 
 class imbalance():
-    
-    def __init__(self, data, target, features=None):
-      
-        self.target = target
-        self.data = data.copy()
-        self.features = list(set(self.data.columns) - set([self.target]))
+
+  def __init__(self, data, target, features=None, steps=[]):
+
+    self.target = target
+    self.data = data.copy()
+    self.features = list(set(self.data.columns) - set([self.target]))
+    self.target_numpy = self.data[self.target].to_numpy()
+    self.features_numpy = self.data[self.features].to_numpy()
+    self.steps = steps
+
+  @staticmethod
+  def resample_dataframe(features_resample, target_resample, features, target):
+
+    df_features = pd.DataFrame(features_resample, columns=features)
+    df_target = pd.DataFrame(target_resample, columns=[target])
+    return pd.concat([df_features, df_target], axis=1)
 
 class resampling(imbalance):
 
-    def __init__(self, data, target, features=None):
-        super().__init__(data, target, features)
-        y = self.data[self.target]
-        X = self.data[self.features]
-        self.OverSampling = object_over(data, target)
+  def __init__(self, data, target, features=None, steps=[]):
+
+    super().__init__(data, target, features, steps)
+    self.OverSampling = object_over(self.data, self.target, steps=steps)
+    self.UnderSampling = object_under(self.data, self.target, steps=steps)
+
+    if not self.steps == []:
+      pipeline = Pipeline(steps=self.steps)
+      features_resample, target_resample = pipeline.fit_resample(self.features_numpy, self.target_numpy)
+      self.data = self.resample_dataframe(features_resample=features_resample, target_resample=target_resample, features=self.features, target=self.target)
+      self.resample = self.data
+
+class object_under(imbalance):
+
+  def __init__(self, data, target, features=None, steps=[]):
+
+    super().__init__(data, target, features, steps)
+    self.target_numpy = self.data[self.target].to_numpy()
+    self.features_numpy = self.data[self.features].to_numpy()
+    self.steps = steps
+
+  def nearMiss(self, version=1, n_neighbors=3):
+
+    under = NearMiss(version=version, n_neighbors=n_neighbors)
+    self.steps.append(('u', under))
+    return resampling(data=self.data, target=self.target, steps=self.steps)
+
+  def condensedNearestNeighbour(self, n_neighbors=1):
+
+    under = CondensedNearestNeighbour(n_neighbors=n_neighbors)
+    self.steps.append(('u', under))
+    return resampling(data=self.data, target=self.target, steps=self.steps)
+
+  def tomekLinks(self):
+
+    under = TomekLinks()
+    self.steps.append(('u', under))
+    return resampling(data=self.data, target=self.target, steps=self.steps)
+
+  def editedNearestNeighbours(self, n_neighbors=3):
+
+    under = EditedNearestNeighbours(n_neighbors=n_neighbors)
+    self.steps.append(('u', under))
+    return resampling(data=self.data, target=self.target, steps=self.steps)
+
+  def oneSidedSelection(self, n_neighbors=1, n_seeds_S=200):
+
+    under = OneSidedSelection(n_neighbors=n_neighbors, n_seeds_S=n_seeds_S)
+    self.steps.append(('u', under))
+    return resampling(data=self.data, target=self.target, steps=self.steps)
+
+  def neighbourhoodCleaningRule(self, n_neighbors=3, threshold_cleaning=0.5):
+
+    under = NeighbourhoodCleaningRule(n_neighbors=n_neighbors, threshold_cleaning=threshold_cleaning)
+    self.steps.append(('u', under))
+    return resampling(data=self.data, target=self.target, steps=self.steps)
+
+  def underRandomSample(self, sampling_strategy='auto'):
+
+    under = RandomUnderSampler(sampling_strategy=sampling_strategy)
+    self.steps.append(('u', under))
+    return resampling(data=self.data, target=self.target, steps=self.steps)
 
 class object_over(imbalance):
 
-    def __init__(self, data, target, features=None):
-      super().__init__(data, target, features)
-      self.y = self.data[self.target].to_numpy()
-      self.X = self.data[self.features].to_numpy()
+  def __init__(self, data, target, features=None, steps=[]):
 
-    def Smote(self, sampling_strategy=None, k_neighbors=None):
+    super().__init__(data, target, features)
+    self.target_numpy = self.data[self.target].to_numpy()
+    self.features_numpy = self.data[self.features].to_numpy()
+    self.steps = steps
 
-      if not sampling_strategy: sampling_strategy = 'auto'
-      if not k_neighbors: k_neighbors = 5
-      oversample = SMOTE(sampling_strategy, k_neighbors)
-      X_s, y_s = oversample.fit_resample(self.X, self.y)
-      df_s1 = pd.DataFrame(X_s, columns = self.features)
-      df_s2 = pd.DataFrame(y_s, columns = [self.target])
-      self.data = pd.concat([df_s1, df_s2], axis=1)
-      return self.data
+  def Smote(self, sampling_strategy='auto', k_neighbors=5):
 
-    def CombSmoteUnder(self, sampling_strategy_Over=None, sampling_strategy_Under=None, k_neighbors=None):
+    over = SMOTE(sampling_strategy=sampling_strategy, k_neighbors=k_neighbors)
+    self.steps.append(('o', over))
+    return resampling(data=self.data, target=self.target, steps=self.steps)
 
-      if not sampling_strategy_Over: sampling_strategy_Over = 'auto'
-      if not k_neighbors: k_neighbors = 5
-      if not sampling_strategy_Under: sampling_strategy_Under = 'auto'
-      over = SMOTE(sampling_strategy_Over, k_neighbors)
-      under = RandomUnderSampler(sampling_strategy_Under)
-      steps = [('o', over), ('u', under)]
-      pipeline = Pipeline(steps=steps)
-      x_new, y_new = pipeline.fit_resample(self.X, self.y)
-      df_c1 = pd.DataFrame(x_new, columns = self.features)
-      df_c2 = pd.DataFrame(y_new, columns = [self.target])
-      self.data = pd.concat([df_c1, df_c2], axis=1)
-      return self.data
+  def SmoteBord(self, sampling_strategy='auto', k_neighbors=5):
 
-    def SmoteBord(self, sampling_strategy=None, k_neighbors=None):
+    over = BorderlineSMOTE(sampling_strategy=sampling_strategy, k_neighbors=k_neighbors)
+    self.steps.append(('o', over))
+    return resampling(data=self.data, target=self.target, steps=self.steps)
 
-      if not sampling_strategy: sampling_strategy = 'auto'
-      if not k_neighbors: k_neighbors = 5
-      Over_border = BorderlineSMOTE(sampling_strategy, k_neighbors)
-      X_bord, y_bord = Over_border.fit_resample(self.X, self.y)
-      df_b1 = pd.DataFrame(X_bord, columns = self.features)
-      df_b2 = pd.DataFrame(y_bord, columns = [self.target])
-      self.data = pd.concat([df_b1, df_b2], axis=1)
-      return self.data
+  def SmoteBordSVM(self, sampling_strategy='auto', k_neighbors=5):
 
-    def SmoteBordSVM(self, sampling_strategy=None, k_neighbors=None):
+    over = SVMSMOTE(sampling_strategy=sampling_strategy, k_neighbors=k_neighbors)
+    self.steps.append(('o', over))
+    return resampling(data=self.data, target=self.target, steps=self.steps)
 
-      if not sampling_strategy: sampling_strategy = 'auto'
-      if not k_neighbors: k_neighbors = 5
-      Over_border_svm = SVMSMOTE(sampling_strategy, k_neighbors)
-      X_svm, y_svm = Over_border_svm.fit_resample(self.X, self.y)
-      df_bs1 = pd.DataFrame(X_svm, columns = self.features)
-      df_bs2 = pd.DataFrame(y_svm, columns = [self.target])
-      self.data = pd.concat([df_bs1, df_bs2], axis=1)
-      return self.data
-    
-    def SmoteAdap(self, ratio=None, n_neighbors=None):
+  def SmoteAdap(self, sampling_strategy='auto', n_neighbors=5):
 
-      if not ratio: ratio = 'auto'
-      if not n_neighbors: n_neighbors = 5
-      oversample_ads = ADASYN(ratio, n_neighbors)
-      X_adap, y_adap = oversample_ads.fit_resample(self.X, self.y)
-      df_sa1 = pd.DataFrame(X_adap, columns = self.features)
-      df_sa2 = pd.DataFrame(y_adap, columns = [self.target])
-      self.data = pd.concat([df_sa1, df_sa2], axis=1)      
-      return self.data
+    over = ADASYN(sampling_strategy=sampling_strategy, n_neighbors=n_neighbors)
+    self.steps.append(('o', over))
+    return resampling(data=self.data, target=self.target, steps=self.steps)
 
-    def RandomSample(self, sampling_strategy=None):
+  def overRandomSample(self, sampling_strategy='auto'):
 
-      if not sampling_strategy: sampling_strategy = 'auto'
-      Rand = RandomOverSampler(sampling_strategy)
-      x_rand, y_rand = Rand.fit_resample(self.X, self.y)
-      df_rand1 = pd.DataFrame(x_rand, columns = self.features)
-      df_rand2 = pd.DataFrame(y_rand, columns = [self.target])
-      self.data = pd.concat([df_rand1, df_rand2], axis=1) 
-      return self.data
+    over = RandomOverSampler(sampling_strategy=sampling_strategy)
+    self.steps.append(('o', over))
+    return resampling(data=self.data, target=self.target, steps=self.steps)
 
-    def CounterTarget(self, data, target):
-
-      if not target: target  = self.target
-      y = data[target].to_list()
-      counter = Counter(y)
-      return counter
