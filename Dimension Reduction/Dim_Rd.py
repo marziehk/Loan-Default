@@ -1,5 +1,7 @@
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.decomposition import PCA
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 import pandas as pd
 import numpy as np
 
@@ -33,9 +35,14 @@ class Dim_Red():
     def RF(self, ):
         pass
 
-    def PCA(self,):
-        pass
+    def PCA(self, n_components=2):
+        pca = PCA(n_components=n_components)
+        transformed = pca.fit_transform(self.features_numpy)
+        self.explained_variance_ratio = pca.explained_variance_ratio_
+        self.singular_values = pca.singular_values_
+        return transformed
 
-    def LDA(self,):
-        pass
-     
+    def LDA(self, n_components=1):
+        clf = LinearDiscriminantAnalysis(n_components=n_components)
+        transformed = clf.fit_transform(self.features_numpy, self.target_numpy)
+        return transformed
