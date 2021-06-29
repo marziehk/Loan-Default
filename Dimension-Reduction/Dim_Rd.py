@@ -3,6 +3,8 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.decomposition import PCA
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.decomposition import TruncatedSVD
+from sklearn.linear_model import LogisticRegression
+from mlxtend.feature_selection import SequentialFeatureSelector as SFS
 import pandas as pd
 import numpy as np
 
@@ -72,3 +74,29 @@ class Dim_Red():
                     self.data.drop(self.data.index[row], inplace=True)
 
         return self.data
+
+    def wrapper(self,estimator,forward=True,k_features=1,cv=5,scoring=None):
+            sfs = SFS(estimator,
+                k_features=k_features,
+                forward=forward,
+                floating=False,
+                scoring = scoring,
+                cv = cv)
+            sfs = sfs.fit(self.data[self.features], self.data[self.target])
+            feat_names = list(sfs.k_feature_names_)
+            return self.data[feat_names]
+
+    def get_redundant_pairs(self,data):
+        '''Get diagonal and lower triangular pairs of correlation matrix'''
+        pairs_to_drop = set()
+        cols = data.columns
+        for i in range(0, data.shape[1]):
+            for j in range(0, i+1):
+                pairs_to_drop.add((cols[i], cols[j]))
+        return pairs_to_drop
+
+    def corr(self, num_features=2):
+        au_corr = self.data.corr().abs().unstack()
+        labels_to_drop = self.get_redundant_pairs(self.data)
+        au_corr = au_corr.drop(labels=labels_to_drop).sort_values(ascending=False)
+        return self.data[au_corr[0:num_features].reset_index().iloc[:,0].to_list()] 

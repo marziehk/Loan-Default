@@ -16,6 +16,7 @@ df = pd.DataFrame({"feature1": [1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 
 #                    "feature4": [None, 1, 0, None, 0, 0, 1, 1, None, 1, 1, 1, 0, 1, 0, 0, 1, 0, 0, 0],
 #                    "feature5": [None, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 0, 1],
 #                    "target": [None, 1, 1, 1, 1, 0, 0, None, 4, 4, 4, 4, 2, 2, 2, 2, 3, 3, 3, 3]})
+df_copy=df.copy()
 
 df_reduce = Dim_Red(data=df, target="target")
 
@@ -37,3 +38,11 @@ print("singular values:\n", df_reduce.singular_values)
 #Deleting           For testing this part you need to comment the other parts and uncomment the second data frame
 df_delete = df_reduce.delete(axis=0, percent=50)
 print("Using deletion:\n", df_delete)
+
+#Wrapper
+df_reduce = Dim_Red(data=df_copy, target="target")
+print("Using Wrapper:\n", df_reduce.wrapper(estimator=LogisticRegression(),forward=True,k_features=2,cv=0,scoring=None))
+
+#Correlation
+df_reduce = Dim_Red(data=df_copy, target="target")
+print("Using Correlation:\n", df_reduce.corr(num_features=3))
